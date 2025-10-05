@@ -3,10 +3,13 @@ let secretNumber;
 let attempts = 0;
 let gameStartedTime;
 let gameOver = false;
+const NUMBER_OF_MCQ_OPTIONS = 5; // Cards to display at a time
 
 // --- DOM Element References ---
-const guessInput = document.getElementById('guessInput');
-const submitButton = document.getElementById('submitGuess');
+const guessInput = document.getElementById('guessInput');      // Search Bar
+const submitButton = document.getElementById('submitGuess');    // Submit Button
+const cardsContainer = document.getElementById('guessCards'); // Card Container
+
 const resultMessage = document.getElementById('resultMessage');
 const attemptsCountDisplay = document.getElementById('attemptsCount');
 const gameStartDisplay = document.getElementById('gameStart');
@@ -14,36 +17,16 @@ const gameEndDisplay = document.getElementById('gameEnd');
 const logTableBody = document.querySelector('#logTable tbody');
 const resetButton = document.getElementById('resetGame');
 
-// --- Helper Functions ---
+// --- Helper Functions (Time, Random Number, Logging) ---
 
-/**
- * Generates a random integer between min and max (inclusive).
- * @param {number} min - The minimum number.
- * @param {number} max - The maximum number.
- * @returns {number} The random integer.
- */
 function generateRandomNumber(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-/**
- * Formats a Date object into a readable time string (e.g., 05:30:12 PM).
- * @param {Date} date - The Date object.
- * @returns {string} The formatted time string.
- */
 function formatTime(date) {
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit'
-    });
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-/**
- * Formats a Date object into a readable date and time string (e.g., Oct 4, 2025 – 5:30 PM).
- * @param {Date} date - The Date object.
- * @returns {string} The formatted date and time string.
- */
 function formatDate(date) {
     return date.toLocaleString('en-US', {
         year: 'numeric',
@@ -54,75 +37,114 @@ function formatDate(date) {
     });
 }
 
-/**
- * Adds a new row to the log table.
- * @param {number} attemptNum - The attempt number.
- * @param {number} guessVal - The guessed value.
- * @param {string} resultText - The result (Too High/Too Low/Correct).
- */
 function addLogEntry(attemptNum, guessVal, resultText) {
     const now = new Date();
-    const row = logTableBody.insertRow(0); // Insert at the top
+    const row = logTableBody.insertRow(0); 
 
-    // Attempt #
-    let cell1 = row.insertCell(0);
-    cell1.textContent = `#${attemptNum}`;
+    row.insertCell(0).textContent = `#${attemptNum}`;
+    row.insertCell(1).textContent = guessVal;
+    
+    let resultCell = row.insertCell(2);
+    resultCell.textContent = resultText;
+    resultCell.style.color = resultText.includes('Correct') ? 'green' : (resultText.includes('High') ? '#cc9900' : 'red');
 
-    // Guess Value
-    let cell2 = row.insertCell(1);
-    cell2.textContent = guessVal;
+    row.insertCell(3).textContent = formatTime(now);
+}
 
-    // Result
-    let cell3 = row.insertCell(2);
-    cell3.textContent = resultText;
-    cell3.style.color = resultText.includes('Correct') ? 'green' : 'red';
+// --- MCQ Option Generation Function (Same as before) ---
 
-    // Timestamp
-    let cell4 = row.insertCell(3);
-    cell4.textContent = formatTime(now);
+function generateMCQOptions() {
+    const options = new Set();
+    options.add(secretNumber);
+
+    while (options.size < NUMBER_OF_MCQ_OPTIONS) {
+        let randomNum = generateRandomNumber(1, 50);
+        options.add(randomNum);
+    }
+
+    const shuffledOptions = Array.from(options);
+    for (let i = shuffledOptions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledOptions[i], shuffledOptions[j]] = [shuffledOptions[j], shuffledOptions[i]]; 
+    }
+    return shuffledOptions;
+}
+
+// --- Card Generation & Update Function ---
+
+function createGuessCards(options) {
+    cardsContainer.innerHTML = '';
+    options.forEach(num => {
+        const card = document.createElement('div');
+        card.classList.add('guess-card');
+        card.textContent = num;
+        card.dataset.value = num;
+
+        // Attach the common checkGuess function, passing the card's value
+        card.addEventListener('click', () => {
+            if (!gameOver) {
+                // Call checkGuess with the number from the card
+                checkGuess(parseInt(card.dataset.value));
+            }
+        });
+        cardsContainer.appendChild(card);
+    });
 }
 
 // --- Main Game Functions ---
 
 /**
- * Initializes the game state.
+ * Initializes the game state and UI elements.
  */
 function initializeGame() {
     secretNumber = generateRandomNumber(1, 50);
     attempts = 0;
     gameOver = false;
-    gameStartedTime = new Date(); // Set game start time
+    gameStartedTime = new Date(); 
 
-    // Update DOM
-    resultMessage.textContent = 'Ready to guess!';
+    // Reset UI
+    resultMessage.textContent = 'Enter your guess or select a card.';
     attemptsCountDisplay.textContent = 'Attempts: 0';
     gameStartDisplay.textContent = `Game Started: ${formatDate(gameStartedTime)}`;
     gameEndDisplay.textContent = 'Game Finished: Waiting...';
-    guessInput.value = '';
-    submitButton.disabled = false;
-    guessInput.disabled = false;
-    logTableBody.innerHTML = ''; // Clear the log table
+    logTableBody.innerHTML = ''; 
     resetButton.style.display = 'none';
+    guessInput.value = '';
+    guessInput.disabled = false;
+    submitButton.disabled = false;
+
+    // Generate and display initial MCQ cards
+    const initialOptions = generateMCQOptions();
+    createGuessCards(initialOptions);
     
-    console.log(`Secret Number (for debugging): ${secretNumber}`); // Keep this for easy testing
+    console.log(`Secret Number (for debugging): ${secretNumber}`);
 }
 
 /**
- * Handles the user's guess submission.
+ * Main game logic, handles input validation, comparison, and logging.
+ * @param {number|null} guessValue - The number guessed, either from input field or card.
  */
-function checkGuess() {
+function checkGuess(guessValue = null) {
     if (gameOver) return;
 
-    const guess = parseInt(guessInput.value);
+    let guess;
 
-    // 1. Input Validation
-    if (isNaN(guess) || guess < 1 || guess > 50) {
-        alert('Please enter a valid number between 1 and 50.');
-        guessInput.value = '';
-        return;
+    if (guessValue !== null) {
+        // Guess came from a card click
+        guess = guessValue;
+    } else {
+        // Guess came from the search bar/submit button
+        guess = parseInt(guessInput.value);
+        
+        // 1. Input Validation for search bar
+        if (isNaN(guess) || guess < 1 || guess > 50) {
+            alert('Please enter a valid number between 1 and 50.');
+            guessInput.value = '';
+            return;
+        }
+        guessInput.value = ''; // Clear input after valid submission
     }
 
-    // Update attempts
     attempts++;
     attemptsCountDisplay.textContent = `Attempts: ${attempts}`;
     
@@ -138,39 +160,44 @@ function checkGuess() {
         
         resultMessage.textContent = `${resultText} You guessed in ${attempts} tries.`;
         
-        // Update Game Tracking
+        // Finalize UI
         gameEndDisplay.textContent = `Game Finished: ${formatDate(gameEndTime)}`;
-        
-        // Disable input/button
-        submitButton.disabled = true;
         guessInput.disabled = true;
+        submitButton.disabled = true;
+        
+        // Highlight correct card (if visible) and disable all cards
+        document.querySelectorAll('.guess-card').forEach(card => {
+            card.classList.add('disabled');
+            if (parseInt(card.dataset.value) === secretNumber) {
+                card.style.backgroundColor = 'green';
+            } else {
+                 card.style.backgroundColor = '#6c757d'; // Dim incorrect options
+            }
+        });
         resetButton.style.display = 'block';
 
-    } else if (guess > secretNumber) {
-        // Too High
-        resultText = 'Too High ❌';
-        resultMessage.textContent = resultText;
     } else {
-        // Too Low
-        resultText = 'Too Low ❌';
+        // Incorrect Guess (Too High/Too Low)
+        resultText = guess > secretNumber ? 'Too High ❌' : 'Too Low ❌';
         resultMessage.textContent = resultText;
+        
+        // Regenerate new MCQ options for the next attempt
+        const newOptions = generateMCQOptions();
+        createGuessCards(newOptions);
     }
     
-    // 3. Log System (Happens on every attempt)
+    // 3. Log System
     addLogEntry(attempts, guess, resultText);
-    
-    // Clear input for next guess
-    guessInput.value = '';
 }
 
 // --- Event Listeners ---
-submitButton.addEventListener('click', checkGuess);
+submitButton.addEventListener('click', () => checkGuess(null)); // Button calls checkGuess without a value
 resetButton.addEventListener('click', initializeGame);
 
-// Allow pressing Enter key to submit guess
+// Allow pressing Enter key in the search bar to submit guess
 guessInput.addEventListener('keypress', function(e) {
     if (e.key === 'Enter') {
-        checkGuess();
+        checkGuess(null);
     }
 });
 

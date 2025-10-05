@@ -3,16 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Guessing Game with Log Monitoring</title>
-    <link rel="stylesheet" href="style.css"> </head>
+    <title>Number Guessing Game - Dual Input</title>
+    <link rel="stylesheet" href="style.css"> 
+</head>
 <body>
     <div class="container">
         <h1>Interactive Number Guessing Game</h1>
-        <p>Guess a number between 1 and 50.</p>
+        <p>Guess a number between 1 and 50. You can type it or select from the cards.</p>
 
         <div class="input-area">
-            <input type="number" id="guessInput" min="1" max="50" placeholder="Enter your guess (1-50)">
-            <button id="submitGuess">Guess</button>
+            <input type="number" id="guessInput" min="1" max="50" placeholder="Type your guess (1-50)">
+            <button id="submitGuess">Submit</button>
+        </div>
+
+        <div class="card-area">
+            <h3>— OR — Select an Option</h3>
+            <div id="guessCards" class="cards-container">
+                </div>
         </div>
 
         <div class="game-info">
@@ -38,5 +45,6 @@
         </table>
     </div>
 
-    <script src="scripts.js"></script> </body>
+    <script src="scripts.js"></script> 
+</body>
 </html>
