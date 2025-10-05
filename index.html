@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Number Guessing Game with Log Monitoring</title>
+    <link rel="stylesheet" href="style.css"> </head>
+<body>
+    <div class="container">
+        <h1>Interactive Number Guessing Game</h1>
+        <p>Guess a number between 1 and 50.</p>
+
+        <div class="input-area">
+            <input type="number" id="guessInput" min="1" max="50" placeholder="Enter your guess (1-50)">
+            <button id="submitGuess">Guess</button>
+        </div>
+
+        <div class="game-info">
+            <p id="resultMessage" class="message"></p>
+            <p id="attemptsCount" class="info">Attempts: 0</p>
+            <p id="gameStart" class="info">Game Started: Waiting...</p>
+            <p id="gameEnd" class="info">Game Finished: Waiting...</p>
+            <button id="resetGame" style="display:none;">Play Again</button>
+        </div>
+
+        <h2>Log Monitoring</h2>
+        <table id="logTable">
+            <thead>
+                <tr>
+                    <th>Attempt #</th>
+                    <th>Guess Value</th>
+                    <th>Result</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                </tbody>
+        </table>
+    </div>
+
+    <script src="scripts.js"></script> </body>
+</html>
